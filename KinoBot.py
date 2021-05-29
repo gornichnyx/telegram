@@ -27,9 +27,24 @@ def welcome(message):
 def text(message):
     if message.chat.type == 'private':
         if message.text == "Я примерно знаю, что хочу посмотреть":
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            btn1 = types.KeyboardButton("жанр")
+            btn2 = types.KeyboardButton("рейтинг")
+            btn3 = types.KeyboardButton('актер')
+            btn4 = types.KeyboardButton('название')
+            markup.add(btn4, btn1, btn2, btn3)
+            bot.send_message(message.chat.id, 'Выберите критерии поиска.', parse_mode='html', reply_markup=markup)
 
-            bot.send_message(message.chat.id, ttt, parse_mode='MarkdownV2')
-        elif message.text == "Рандомный фильм":
+        if message.text == 'название':
+            sent_message = bot.send_message(message.chat.id, 'Введите название фильма')
+            bot.register_next_step_handler(sent_message, search_by_film_name)
+
+        if message.text == 'жанр':
+            markup = types.ForceReply(selective=False)
+            sent_message = bot.send_message(message.chat.id, "Введите через запятую интересный(е) вам жанр(ы): боевик, вестерн, военный, детектив, документальный, драма, история, комедия, криминал, мелодрама, музыка, мультфильм, приключения, семейный, телевезионный фильм, триллер, ужасы, фантастика, фентези.", parse_mode='html', reply_markup=markup)
+            bot.register_next_step_handler(sent_message, genres)
+
+        if message.text == "Рандомный фильм":
             movie = tmdb.Movies(769694)
             response = movie.info()
             bot.send_message(message.chat.id, '[{}](https://www.themoviedb.org/movie/769694-russian-gay-dude)'.format(movie.title), parse_mode='MarkdownV2')
