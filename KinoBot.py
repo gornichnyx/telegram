@@ -5,6 +5,7 @@ import tmdbsimple as tmdb
 import requests
 import json
 import requests
+from urllib.request import urlopen
 tmdb.REQUESTS_SESSION = requests.Session()
 tmdb.API_KEY = config.TOKENTMDB
 search = tmdb.Search()
@@ -33,14 +34,19 @@ def text(message):
             response = movie.info()
             bot.send_message(message.chat.id, '[{}](https://www.themoviedb.org/movie/769694-russian-gay-dude)'.format(movie.title), parse_mode='MarkdownV2')
 
+        if message.text == "актер":
+            sent_message = bot.send_message((message.chat.id, "Введите имя и фамилию интересущего вас актера"))
+            bot.register_next_step_handler(sent_message, search_by_actor)
+
 
 def search_by_film_name(message):
     response = search.movie(query=message.text)
-    print(search.results)
-    for s in search.results:
-        bot.reply_to(message, s['title'])
-
-
+    try:
+        for s in search.results:
+            bot.send_message(message.chat.id, '[{}](https://www.themoviedb.org/movie/{}-{})'.format(s['title'], s['id'], '-'.join(s['title'].lower().split(' '))), parse_mode='MarkdownV2')
+            print('-'.join(s['title'].lower().split(' ')))
+    except Exception as e:
+        bot.send_message(message.chat.id, '{}  https://www.themoviedb.org/movie/{}'.format(s['title'], s['id']))
 
 def genres(message):
     try:
@@ -49,6 +55,9 @@ def genres(message):
             bot.reply_to(message, genre)
     except Exception as e:
         bot.reply_to(message, 'Неправильный ввод, попробуйте снова, через запятую.')
+
+def search_by_actor(message):
+
 
 
 
