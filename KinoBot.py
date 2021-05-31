@@ -32,7 +32,8 @@ def text(message):
             btn2 = types.KeyboardButton("рейтинг")
             btn3 = types.KeyboardButton('актер')
             btn4 = types.KeyboardButton('название')
-            markup.add(btn4, btn1, btn2, btn3)
+            btn5 = types.KeyboardButton('назад')
+            markup.add(btn4, btn1, btn2, btn3, btn5)
             bot.send_message(message.chat.id, 'Выберите критерии поиска.', parse_mode='html', reply_markup=markup)
 
         if message.text == 'название':
@@ -50,18 +51,9 @@ def text(message):
             bot.send_message(message.chat.id, '[{}](https://www.themoviedb.org/movie/769694-russian-gay-dude)'.format(movie.title), parse_mode='MarkdownV2')
 
         if message.text == "актер":
-            sent_message = bot.send_message((message.chat.id, "Введите имя и фамилию интересущего вас актера"))
+            sent_message = bot.send_message(message.chat.id, "Введите имя и фамилию интересущего вас актера")
             bot.register_next_step_handler(sent_message, search_by_actor)
 
-
-def search_by_film_name(message):
-    response = search.movie(query=message.text)
-    try:
-        for s in search.results:
-            bot.send_message(message.chat.id, '[{}](https://www.themoviedb.org/movie/{}-{})'.format(s['title'], s['id'], '-'.join(s['title'].lower().split(' '))), parse_mode='MarkdownV2')
-            print('-'.join(s['title'].lower().split(' ')))
-    except Exception as e:
-        bot.send_message(message.chat.id, '{}  https://www.themoviedb.org/movie/{}'.format(s['title'], s['id']))
 
 def genres(message):
     try:
@@ -72,6 +64,36 @@ def genres(message):
         bot.reply_to(message, 'Неправильный ввод, попробуйте снова, через запятую.')
 
 def search_by_actor(message):
+    url = 'https://api.themoviedb.org/3/movie/157336?api_key={}'.format(config.TOKENTMDB)
+    response = requests.get(url)
+    print(response.json())
+
+def search_by_film_name(message):
+    try:
+        url = 'https://api.themoviedb.org/3/search/movie?api_key={}&query={})'.format(config.TOKENTMDB, message.text)
+        response = requests.get(url)
+        result = response.json()
+        i = 1
+        for s in result['results'][:5]:
+            url = 'https://api.themoviedb.org/3/movie/{}?api_key={}'.format(s['id'], config.TOKENTMDB)
+            response = requests.get(url)
+            result = response.json()
+            # print(result)
+            genres = ''
+            for genre in result['genres']:
+                genres += genre['name'] + ", "
+            if result['budget'] == 0:
+                result_printed = '{}. {},  {}минут,  {},  {}\nБюджет-неизвестен\n{}'.format(i, result['title'], result['runtime'], result['vote_average'], genres[:-2], result['overview'])
+            else:
+                result_printed = '{}. {},  {}минут,  {},  {}\nБюджет: {}$\n{}'.format(i, result['title'], result['runtime'], result['vote_average'], genres[:-2], result['budget'], result['overview'])
+            bot.send_message(message.chat.id, result_printed)
+            bot.send_photo(message.chat.id, urlopen('https://www.themoviedb.org/t/p/w500{}'.format(s['poster_path'])).read())
+            i += 1
+        bot.send_message(message.chat.id, 'Введите номер заинтересовавшего вас фильма')
+    except Exception as e:
+        pass
+
+
 
 
 
