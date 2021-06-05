@@ -62,19 +62,20 @@ def query_handler(call):
         response = requests.get(url)
         actor = response.json()
         answer = ''
-        i = 1
+        global films
+        films = {}
+        i = 0
         for cast in actor['cast']:
-            print(cast['title'])
+            films[i] = cast
             try:
-                answer += '{}. {}, {}({})\n'.format(str(i), cast['title'], cast['vote_average'], cast['release_date'][:4])
+                answer += '{}. {}, {}({})\n'.format(str(i+1), cast['title'], cast['vote_average'], cast['release_date'][:4])
                 i += 1
             except Exception as e:
                 pass
 
-
-        bot.send_message(call.message.chat.id, answer)
+        bot.send_message(call.message.chat.id, answer[:4000])
         sent_message = bot.send_message(call.message.chat.id, 'введите номер заинтереовавшего вас фильма')
-        bot.register_next_step_handler(sent_message, search_by_film_name)
+        bot.register_next_step_handler(sent_message, more_movie_info)
 
 
 
@@ -103,7 +104,7 @@ def search_by_actor(message):
         response = requests.get(url)
         actor_photo = response.json()
         result_printed = '{}, ({}-{}), {}\nFamous for: {}'\
-            .format(actor['results'][0]['name'], actor_info['birthday'][:4], actor_info['deathday'], actor_info['place_of_birth'], famous_for[:-1])
+            .format(actor['results'][0]['name'], actor_info['birthday'][:4], actor_info['deathday'][:4], actor_info['place_of_birth'], famous_for[:-1])
         bot.send_message(message.chat.id, result_printed)
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton(text="все фильмы", callback_data=1)
@@ -143,6 +144,9 @@ def search_by_film_name(message):
 def more_movie_info(message):
     try:
         movie_info = films[-1+int(message.text)]
+        url = 'https://api.themoviedb.org/3/movie/{}?api_key={}'.format(movie_info['id'], config.TOKENTMDB)
+        response = requests.get(url)
+        movie_info = response.json()
         response = requests.get('https://api.themoviedb.org/3/movie/{}/credits?api_key={}'.format(movie_info['id'], config.TOKENTMDB))
         credits_info = response.json()
         cred = 'Credits: '
@@ -158,22 +162,30 @@ def more_movie_info(message):
             budget = 'Budget is unknown'
         else:
             budget = 'Budget: {}$'.format(movie_info['budget'])
+        if movie_info['revenue'] == 0:
+            revenue = 'Revenue is unknown'
+        else:
+            revenue = 'Revenue: {}$'.format(movie_info['revenue'])
         direction = ''
         for name in credits_info['crew']:
             if name['job'] == 'Director':
                 direction += name['name'] + ", "
         result_printed = '{}, {} minutes, {}, {}.\n' \
                          '{}.\n' \
-                         'Revenue: {}$.\n' \
+                         '{}.\n' \
                          'Production: {}.\n'\
                          'Directed by {}.\n'\
                          '{}.'\
-            .format(movie_info['title'], movie_info['runtime'], movie_info['vote_average'], genres[:-2], budget, movie_info['revenue'], production[:-2], direction[:-2], cred[:-2])
+            .format(movie_info['title'], movie_info['runtime'], movie_info['vote_average'], genres[:-2], budget, revenue, production[:-2], direction[:-2], cred[:-2])
         bot.send_message(message.chat.id, result_printed)
         if movie_info['backdrop_path'] != None:
             bot.send_photo(message.chat.id, urlopen('https://www.themoviedb.org/t/p/w500{}'.format(movie_info['backdrop_path'])).read())
     except Exception as e:
+        print(e)
         bot.send_message(message.chat.id, 'неправильный ввод')
+
+
+
 
 
 
